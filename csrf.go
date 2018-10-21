@@ -12,9 +12,13 @@ import (
 //
 
 var (
-	// ErrBadOrigin is returned when the given Origin (or Referer) was not in
-	// the allowed list.
-	ErrBadOrigin = fmt.Errorf("Origin invalid")
+	// ErrDisallowedOrigin is returned when the given Origin (or Referer) was
+	// not in the allowed list.
+	ErrDisallowedOrigin = fmt.Errorf("Origin invalid")
+
+	// ErrEmptyOrigin is returned when we couldn't extract an origin from
+	// either the Origin or Referer headers.
+	ErrEmptyOrigin = fmt.Errorf("Origin empty")
 
 	// ErrInvalidReferer is returned when the URL in the Referer header
 	// couldn't be parsed.
@@ -24,6 +28,11 @@ var (
 // Option describes a functional option for configuring the CSRF handler.
 type Option func(*csrf)
 
+// AllowedOrigin configures an origin which is allowed for purposes of CSRF
+// checking.
+//
+// Use a fully URL including scheme like `https://example.com` with no trailing
+// slash..
 func AllowedOrigin(origin string) Option {
 	return func(cs *csrf) {
 		cs.allowedOrigins = append(cs.allowedOrigins, origin)
@@ -47,7 +56,7 @@ func ErrorHandler(h http.Handler) Option {
 // This is useful when you want to log the cause of the error or report it to
 // client.
 func FailureReason(r *http.Request) error {
-	if val, err := contextGet(r, errorKey); err == nil {
+	if val, err := contextGet(r, errorKey{}); err == nil {
 		if err, ok := val.(error); ok {
 			return err
 		}
@@ -56,6 +65,7 @@ func FailureReason(r *http.Request) error {
 	return nil
 }
 
+// Protect wraps the given http.Handler with CSRF protection.
 func Protect(opts ...Option) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		cs := parseOptions(h, opts...)
@@ -80,8 +90,14 @@ func (cs *csrf) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if origin == "" {
+			r = envError(r, ErrEmptyOrigin)
+			cs.errorHandler.ServeHTTP(w, r)
+			return
+		}
+
 		if !contains(cs.allowedOrigins, origin) {
-			r = envError(r, ErrBadOrigin)
+			r = envError(r, ErrDisallowedOrigin)
 			cs.errorHandler.ServeHTTP(w, r)
 			return
 		}
@@ -101,16 +117,13 @@ func (cs *csrf) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Private
 //
 
-// Context/session keys & prefixes
-const (
-	errorKey string = "statesless_csrf.Error"
-)
-
 type csrf struct {
 	allowedOrigins []string
 	errorHandler   http.Handler
 	h              http.Handler
 }
+
+type errorKey struct{}
 
 var (
 	// Idempotent (safe) methods as defined by RFC7231 section 4.2.2.
@@ -133,7 +146,7 @@ func contextClear(r *http.Request) {
 	// no-op for go1.7+
 }
 
-func contextGet(r *http.Request, key string) (interface{}, error) {
+func contextGet(r *http.Request, key interface{}) (interface{}, error) {
 	val := r.Context().Value(key)
 	if val == nil {
 		return nil, fmt.Errorf("no value exists in the context for key %q", key)
@@ -142,7 +155,7 @@ func contextGet(r *http.Request, key string) (interface{}, error) {
 	return val, nil
 }
 
-func contextSave(r *http.Request, key string, val interface{}) *http.Request {
+func contextSave(r *http.Request, key, val interface{}) *http.Request {
 	ctx := r.Context()
 	ctx = context.WithValue(ctx, key, val)
 	return r.WithContext(ctx)
@@ -150,7 +163,7 @@ func contextSave(r *http.Request, key string, val interface{}) *http.Request {
 
 // envError stores a CSRF error in the request context.
 func envError(r *http.Request, err error) *http.Request {
-	return contextSave(r, errorKey, err)
+	return contextSave(r, errorKey{}, err)
 }
 
 func originOrReferer(r *http.Request) (string, error) {
