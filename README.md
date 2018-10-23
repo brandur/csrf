@@ -12,7 +12,9 @@ import (
 
 func main() {
     var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-    handler = csrf.Protect(csrf.AllowedOrigin("https://example.com"))(s)
+    handler = csrf.Protect(
+        csrf.AllowedOrigin("https://example.com")
+    )(s)
 
     ...
 }
