@@ -1,4 +1,4 @@
-# Go stateless CSRF [![Build Status](https://travis-ci.org/brandur/csrf.svg?branch=master)](https://travis-ci.org/brandur/csrf)
+# Go stateless CSRF [![Build Status](https://github.com/brandur/csrf/workflows/csrf%20CI/badge.svg)](https://github.com/brandur/csrf/actions)
 
 A stateless CSRF middleware for Go. It works by relying the
 presence of the [`Origin`][origin] header. It will also
