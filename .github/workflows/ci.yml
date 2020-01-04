@@ -29,6 +29,7 @@ jobs:
       - name: Debug
         run: |
           echo "github.ref=${{ github.ref }}"
+          echo "go env GOPATH=$(go env GOPATH)"
           echo "pwd=$(pwd)"
           echo "HOME=${HOME}"
           echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
