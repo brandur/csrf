@@ -1,5 +1,13 @@
 # Go stateless CSRF [![Build Status](https://github.com/brandur/csrf/workflows/csrf%20CI/badge.svg)](https://github.com/brandur/csrf/actions)
 
+## Deprecated
+
+Go 1.25 now has the [built-in `CrossOriginProtection` construct](https://pkg.go.dev/net/http@master#CrossOriginProtection) that does the same thing as this package, but which is better maintained.
+
+This repository will be best effort maintained for some time longer, but given the upgrade path to the official variant is quite easy, it will be transitioning to archived before too long.
+
+---
+
 A stateless CSRF middleware for Go. It works by relying the
 presence of the [`Origin`][origin] header. It will also
 fall back to `Referer` if that's provided and `Origin`
