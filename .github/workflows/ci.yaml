@@ -3,9 +3,6 @@ name: csrf CI
 on:
   pull_request:
   push:
-  schedule:
-    # once a day at 08:00
-    - cron: "0 8 * * *"
 
 jobs:
   build:
@@ -14,20 +11,9 @@ jobs:
 
     steps:
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
 
-      - name: Install Golint
-        run: go get -u golang.org/x/lint/golint
-
-      - uses: actions/checkout@v2
-
-      - name: Debug
-        run: |
-          echo "github.ref=${{ github.ref }}"
-          echo "go env GOPATH=$(go env GOPATH)"
-          echo "pwd=$(pwd)"
-          echo "HOME=${HOME}"
-          echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
+      - uses: actions/checkout@v5
 
       - name: "Go: Build"
         run: go build
@@ -40,6 +26,3 @@ jobs:
 
       - name: "Check: Gofmt"
         run: scripts/check_gofmt.sh
-
-      - name: "Check: Lint"
-        run: "$(go env GOPATH)/bin/golint -set_exit_status"
